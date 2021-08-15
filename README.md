@@ -2,6 +2,10 @@
 首先按照上面链接中的说明进行操作
 之后再运行该脚本
 
+```bash
+wget -N --no-check-certificate -q -O sub.sh "https://raw.githubusercontent.com/Xiaoooyooo/v2rayN-subscrition/master/sub.sh" && chmod +x sub.sh && bash sub.sh
+```
+
 订阅接口的地址为`/sub/`
 
 **注意事项（2021.08.15）**
@@ -16,3 +20,4 @@
   PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin:/usr/node/node-v14.17.5-linux-x64/bin
   ```
 
++ 自用为主
