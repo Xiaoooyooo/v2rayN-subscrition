@@ -11,12 +11,14 @@ domain_config="/usr/local/etc/xray/domain"
 if [ -f ./SERVER_PATH ]
 then
   SERVER_PATH=$(cat SERVER_PATH)
-else
-  SERVER_PATH=$(pwd)
 fi
+[ -z $SERVER_PATH ] && SERVER_PATH=$(pwd)
 SCRIPT_PATH=$(pwd) # 脚本所在路径，config.json会生成在同目录
+echo "服务器目录位于 $SCRIPT_PATH"
 
 update_config() {
+  local curr_dir=$(pwd)
+  cd $SERVER_PATH
   DOMAIN=$(cat $domain_config)
   UUID=$(cat $xray_config | jq .inbounds[0].settings.clients[0].id | tr -d '"')
   PORT=$(cat "/etc/nginx/conf.d/${DOMAIN}.conf" | grep -m 1 'ssl http2' | awk -F ' ' '{print $2}' )
@@ -44,6 +46,7 @@ EOF
 
   echo $config > config.json
   echo "更新配置成功"
+  cd $curr_dir
 }
 
 check_nodejs() {
@@ -92,7 +95,8 @@ install_node() {
 }
 
 check_dir() {
-  read -rp "输入路径" path
+  read -rp "输入路径(~/sub-server)" path
+  [ -z $path ] && path="$HOME/sub-server"
   echo "输入为：${path}"
   local retry=0
   if [ -d $path ]
@@ -148,24 +152,25 @@ setup_server() {
   echo "写入服务入口文件"
   cat > app.js <<EOF
 const http = require("http");
+const fs = require("fs");
 const base64 = require("Base64");
-let config;
-try {
-  config = require("${SCRIPT_PATH}/config.json");
-} catch (err) {
-  config = {};
-} finally {
-  setup();
-}
+
+setup();
 
 function setup() {
   http.createServer((req, res) => {
     const { method, url } = req;
-    console.log(method, url);
+    // console.log(method, url);
     if (method === "GET") {
       res.writeHead(200, {
         "content-type": "text/plain;charset=utf-8",
       });
+      let config;
+      try {
+        config = JSON.parse(fs.readFileSync("config.json", { encoding: "utf8" }));
+      } catch (err) {
+        config = {};
+      }
       if (Object.keys(config).length === 0) {
         return res.end("未检测到配置文件");
       }
@@ -236,10 +241,10 @@ main() {
       ;;
     2)
       echo "安装订阅服务器"
-      update_config
       check_nodejs
       check_dir
       setup_server
+      update_config
       start_server
       modify_nginx_config
       ;;
